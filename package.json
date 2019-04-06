@@ -1,16 +1,26 @@
 {
-  "name": "create-react-app",
+  "name": "react-dapp-cryptopot",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "bootstrap": "^4.3.1",
+    "core-js": "^3.0.0",
+    "jquery": "^3.3.1",
+    "node-sass": "^4.11.0",
+    "popper.js": "^1.15.0",
     "react": "^16.8.6",
+    "react-app-polyfill": "^0.2.2",
     "react-dom": "^16.8.6",
-    "react-scripts": "2.1.8"
+    "react-scripts": "2.1.8",
+    "truffle-contract": "^4.0.11",
+    "web3": "^1.0.0-beta.52"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "test:cov": "react-scripts test --coverage",
+    "test:debug": "react-scripts --inspect-brk test --runInBand",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
