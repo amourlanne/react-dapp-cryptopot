@@ -11,7 +11,8 @@
     "react": "^16.8.6",
     "react-app-polyfill": "^0.2.2",
     "react-dom": "^16.8.6",
-    "react-scripts": "2.1.8",
+    "react-scripts": "^2.1.8",
+    "truffle": "^5.0.12",
     "truffle-contract": "^4.0.11",
     "web3": "^1.0.0-beta.52"
   },
@@ -21,7 +22,9 @@
     "test": "react-scripts test",
     "test:cov": "react-scripts test --coverage",
     "test:debug": "react-scripts --inspect-brk test --runInBand",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "truffle:test": "truffle test",
+    "truffle:migrate": "truffle migrate --compile-all --reset --network development"
   },
   "eslintConfig": {
     "extends": "react-app"
