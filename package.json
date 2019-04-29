@@ -11,8 +11,6 @@
     "react": "^16.8.6",
     "react-app-polyfill": "^0.2.2",
     "react-dom": "^16.8.6",
-    "react-scripts": "^2.1.8",
-    "truffle": "^5.0.12",
     "truffle-contract": "^4.0.11",
     "web3": "^1.0.0-beta.52"
   },
@@ -34,5 +32,9 @@
     "not dead",
     "not ie <= 11",
     "not op_mini all"
-  ]
+  ],
+  "devDependencies": {
+    "react-scripts": "^3.0.0",
+    "truffle": "^5.0.14"
+  }
 }
