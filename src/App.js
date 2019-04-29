@@ -1,60 +1,79 @@
-import React, { Component } from 'react';
+import React, {Component} from 'react';
 import logo from './assets/logo.png';
 import "bootstrap";
 import './App.scss';
 
 import Web3 from "web3";
-// import TruffleContract from "truffle-contract";
 
-// import MoneyPotSystem from "./build/contracts/MoneyPotSystem.json";
+import TruffleContract from "truffle-contract";
+import MoneyPotSystem from "./build/contracts/MoneyPotSystem.json";
 
 class App extends Component {
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            web3 : null,
-        }
+  constructor(props) {
+    super(props);
+    this.state = {
+      web3: null,
+      wallet: null,
+      balance: null,
+      network: null,
+      moneyPotContract: null
     }
+  }
 
   componentWillMount() {
 
     if (typeof window.web3 !== 'undefined') {
 
-        const web3 = new Web3(window.web3.currentProvider);
+      const web3 = new Web3(window.web3.currentProvider);
 
-        const {
-            getCoinbase,
-            getBalance
-        } = web3.eth;
+      window.web3.currentProvider.publicConfigStore.on('update', (result) => {
+        console.log(window.web3.eth.defaultAccount);
+      });
 
-        const {
-            fromWei
-        } = web3.utils;
+      const {
+        getCoinbase,
+        getBalance,
+        net
+      } = web3.eth;
 
-        getCoinbase().then((account) => {
-            if(account) {
-                console.log(account);
-                return getBalance(account);
-            } else {
-                console.log('MetaMask is locked');
-            }
-        }).then((balance) => {
-            if(balance) {
-                console.log(Number(fromWei(balance, "ether")));
-            }
-        });
+      const {
+        fromWei
+      } = web3.utils;
 
+      net.getNetworkType().then((type) => {
         this.setState({
-            web3: web3
+          network: type,
         });
+      });
 
-      // this.tokenZendr = TruffleContract(MoneyPotSystem);
-      // this.tokenZendr.setProvider(this.web3Provider);
+      getCoinbase().then((account) => {
+        if (account) {
 
-      // if (web3.eth.coinbase === null) {
-      //   console.log('MetaMask is locked');
-      // }
+          let moneyPotContract = TruffleContract(MoneyPotSystem);
+          moneyPotContract.setProvider(window.web3.currentProvider);
+
+          this.setState({
+            wallet: account,
+            moneyPotContract
+          });
+
+          return getBalance(account);
+        } else {
+          console.log('MetaMask is locked');
+        }
+      }).then((balance) => {
+        if (balance) {
+          const balanceEur = Number(fromWei(balance, "ether"));
+          this.setState({
+            balance: balanceEur
+          });
+        }
+      });
+
+      this.setState({
+        web3: web3
+      });
 
     } else {
       console.log('MetaMask is not installed');
@@ -62,13 +81,29 @@ class App extends Component {
   }
 
   render() {
+
+    const {
+      wallet,
+      balance,
+      network
+    } = this.state;
+
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>src/App.js</code> and save to reload.
-          </p>
+          <img src={logo} className="App-logo" alt="logo"/>
+            <p>
+              Connected on {network} network
+            </p>
+          { wallet ?
+            <p>
+              {wallet} {balance}
+            </p>
+            :
+            <p>
+              Account is locked
+            </p>
+          }
           <a
             className="App-link"
             href="https://reactjs.org"
