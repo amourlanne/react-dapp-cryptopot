@@ -99,7 +99,7 @@ contract MoneyPotSystem is Owned {
 
     require(_id >= 0 && _id <= moneypotCounter);
 
-    MoneyPot storage moneyPot = moneypots[_id];
+    Moneypot storage moneyPot = moneypots[_id];
 
     require(myMoneyPot.open);
 

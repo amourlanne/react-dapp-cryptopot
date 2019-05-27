@@ -1,129 +1,132 @@
 import React, {Component} from 'react';
-import logo from './assets/logo.png';
 import "bootstrap";
 import './App.scss';
 
 import Web3 from "web3";
 
-import TruffleContract from "truffle-contract";
-import MoneyPotSystem from "./build/contracts/MoneyPotSystem.json";
+import {connect} from "react-redux";
+
+import {web3Actions, moneypotActions} from "./redux/actions";
+import {web3Helper} from "./helpers";
 
 class App extends Component {
 
-    constructor(props) {
-        super(props);
-        this.state = {
-            web3: null,
-            wallet: null,
-            balance: null,
-            network: null,
-            moneyPotContract: null
+  initWeb3() {
+
+    const {
+      dispatchWeb3Instance,
+      dispatchWeb3Network,
+      web3AccountInitialized,
+      moneypotsInitialized
+    } = this.props;
+
+    let web3 = window.web3;
+    let ethereum = window.ethereum;
+
+    if (typeof web3 !== 'undefined') {
+
+      if (ethereum) {
+        ethereum.enable().then(() => console.log("connect"));
+        ethereum.on('accountsChanged', (accounts) => {
+          const wallet = accounts[0];
+          web3AccountInitialized(wallet);
+          moneypotsInitialized(wallet);
+        });
+      }
+      const provider = ethereum || web3.currentProvider;
+
+      web3 = new Web3(provider);
+      dispatchWeb3Instance(web3);
+
+      const {
+        net
+      } = web3.eth;
+
+      net.getNetworkType().then((network) => {
+        dispatchWeb3Network(network);
+      });
+
+      web3AccountInitialized();
+    }
+  }
+
+  componentWillMount() {
+    this.initWeb3();
+  }
+
+  render() {
+
+    const {web3, network, account, moneypots, createMoneypot} = this.props;
+    const {wallet, balance} = account;
+
+    return web3 ?
+      <div>
+        <p>
+          Connected on {network} network
+        </p>
+        {wallet ?
+          <div>
+            {wallet} {web3Helper.toETH(balance)}
+            <ul>
+              {moneypots.map((moneypot) =>
+                <li>
+                  {moneypot.name} {moneypot.description}
+                </li>) }
+            </ul>
+            <form>
+              <ul>
+                <li>
+                  <input name="name" type="text" placeholder="name" required/>
+                </li>
+                <li>
+                  <textarea name="description" placeholder="description" rows="2"/>
+                </li>
+                <li>
+                  <input name="beneficary" type="text" placeholder="beneficary address" required/>
+                </li>
+                <li>
+                  <input type="text" className="form-control form-input" placeholder="Donor address"/>
+                  <button>add</button>
+                  <ol>
+                    <li>
+                      <button>remove</button>
+                    </li>
+                  </ol>
+                </li>
+              </ul>
+              <button type="submit" onClick={() => createMoneypot("name","desription", "0xF9c5C5D557C297a018407Ce68c8fC043Df186Ba8" , [])}>create</button>
+            </form>
+          </div>
+          :
+          <p>
+          Account is locked
+          </p>
         }
-    }
-
-    componentWillMount() {
-
-        if (typeof window.web3 !== 'undefined') {
-
-            const web3 = new Web3(window.web3.currentProvider);
-
-            window.web3.currentProvider.publicConfigStore.on('update', (result) => {
-                console.log(window.web3.eth.defaultAccount);
-            });
-
-            const {
-                getCoinbase,
-                getBalance,
-                net
-            } = web3.eth;
-
-            const {
-                fromWei
-            } = web3.utils;
-
-            net.getNetworkType().then((type) => {
-                this.setState({
-                    network: type,
-                });
-            });
-
-            getCoinbase().then((account) => {
-                if (account) {
-
-                    let moneyPotContract = TruffleContract(MoneyPotSystem);
-                    moneyPotContract.setProvider(window.web3.currentProvider);
-
-                    this.setState({
-                        wallet: account,
-                        moneyPotContract
-                    });
-
-                    return getBalance(account);
-                } else {
-                    console.log('MetaMask is locked');
-                }
-            }).then((balance) => {
-                if (balance) {
-                    const balanceEur = Number(fromWei(balance, "ether"));
-                    this.setState({
-                        balance: balanceEur
-                    });
-                }
-            });
-
-            this.setState({
-                web3: web3
-            });
-
-        } else {
-            console.log('MetaMask is not installed');
-        }
-    }
-
-    render() {
-
-        const {
-            wallet,
-            balance,
-            network,
-            web3
-        } = this.state;
-
-        return (
-            <div className="App">
-                <header className="App-header">
-                    <img src={logo} className="App-logo" alt="logo"/>
-                    {web3 ?
-                        <div>{network &&
-                        <p>
-                            Connected on {network} network
-                        </p>}
-                            {wallet ?
-                                <p>
-                                    {wallet} {balance}
-                                </p>
-                                :
-                                <p>
-                                    Account is locked
-                                </p>
-                            }</div>
-                        :
-                        <p>
-                            MetaMask is not installed
-                        </p>
-                    }
-                    <a
-                        className="App-link"
-                        href="https://reactjs.org"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        Learn React
-                    </a>
-                </header>
-            </div>
-        );
-    }
+      </div>
+      :
+      <p>Install Metamask</p>;
+  }
 }
 
-export default App;
+function mapStateToProps(state) {
+  const {web3Instance, account, network} = state.web3;
+  const {moneypots} = state.moneypot;
+  return {
+    web3: web3Instance,
+    account: account,
+    network: network,
+    moneypots: moneypots
+  };
+}
+
+const mapDispatchToProps = (dispatch) => {
+  return {
+    dispatchWeb3Instance: (web3) => dispatch(web3Actions.dispatchWeb3Instance(web3)),
+    dispatchWeb3Network: (network) => dispatch(web3Actions.dispatchWeb3Network(network)),
+    web3AccountInitialized: (wallet = null) => dispatch(web3Actions.web3AccountInitialized(wallet)),
+    moneypotsInitialized: (wallet) => dispatch(moneypotActions.moneypotsInitialized(wallet)),
+    createMoneypot: (name, description, beneficiary, donors) => dispatch(moneypotActions.createMoneypot(name, description, beneficiary, donors))
+  };
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);
