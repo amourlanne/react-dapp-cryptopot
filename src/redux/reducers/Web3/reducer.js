@@ -22,19 +22,11 @@ export function web3Reducer(state = initialState, action) {
       ...state,
       web3Instance: payload.web3Instance,
     };
-  case web3Constants.WEB3_WALLET_INITIALIZED:
+  case web3Constants.WEB3_ACCOUNT_INITIALIZED:
     return {
       ...state,
       account: {
         wallet: payload.wallet,
-        balance: state.account.balance
-      }
-    };
-  case web3Constants.WEB3_BALANCE_INITIALIZED:
-    return {
-      ...state,
-      account: {
-        wallet: state.account.wallet,
         balance: payload.balance
       }
     };

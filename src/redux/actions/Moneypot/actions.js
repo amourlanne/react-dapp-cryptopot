@@ -5,40 +5,40 @@ import * as contract from "truffle-contract";
 import MoneypotContract from "../../../build/contracts/MoneyPotSystem.json";
 
 export const moneypotActions = {
-  dispatchMoneypot,
+  dispatchMoneypots,
   moneypotsInitialized,
   createMoneypot
 };
 
-function dispatchMoneypot(moneypot) {
+function dispatchMoneypots(moneypots) {
   return {
-    type: moneypotConstants.MONEYPOT_INITIALIZED,
+    type: moneypotConstants.MONEYPOTS_INITIALIZED,
     payload: {
-      moneypot: moneypot,
+      moneypots: moneypots,
     }
   };
 }
 
 function createMoneypot(name, description, beneficiary, donors) {
-  const web3 = store.getState().web3.web3Instance;
+  const web3State = store.getState().web3;
+
+  const web3 = web3State.web3Instance;
+  const wallet = web3State.account.wallet;
 
   if (web3) {
-    return dispatch => {
-      // Using truffle-contract we create the authentication object.
+    return async dispatch => {
 
       const moneypotContract = contract(MoneypotContract);
       moneypotContract.setProvider(web3.givenProvider);
 
-      let moneypotInstance;
+      const moneypotInstance = await moneypotContract.deployed();
 
-      moneypotContract.deployed().then((instance) => {
-        moneypotInstance = instance;
-        return moneypotInstance.createMoneyPot(name, description, beneficiary, donors, {
-          from: store.getState().web3.account.wallet,
-        });
-      }).then((receipt) => {
-        console.log(receipt);
+      const receipt = await moneypotInstance.createMoneyPot(name, description, beneficiary, donors, {
+          from: wallet,
       });
+
+      if(receipt) dispatch(moneypotsInitialized());
+
     };
   }
   else
@@ -48,61 +48,60 @@ function createMoneypot(name, description, beneficiary, donors) {
 
 }
 
-function moneypotsInitialized(wallet) {
-  const web3 = store.getState().web3.web3Instance;
+function moneypotsInitialized() {
+  const web3State = store.getState().web3;
+
+  const web3 = web3State.web3Instance;
+  const wallet = web3State.account.wallet;
 
   if (web3) {
-    return dispatch => {
+    return async dispatch => {
       // Using truffle-contract we create the authentication object.
 
-      const moneypotContract = contract(MoneypotContract);
-      moneypotContract.setProvider(web3.givenProvider);
 
-      // Declaring this for later so we can chain functions on Authentication.
-      let moneypotInstance;
+      let moneyPotContract = contract(MoneypotContract);
+      moneyPotContract.setProvider(web3.givenProvider);
 
-      moneypotContract.deployed().then((instance) => {
-        moneypotInstance = instance;
-        return moneypotInstance.getMyMoneyPotsIds(wallet);
-      }).then((moneypotIds) => {
-        moneypotIds.forEach((moneyPotId) => {
 
-          let _moneypot = {};
-          moneypotInstance.moneypots(moneyPotId.toNumber())
-            .then((moneyPot) => {
+      const moneypotInstance = await moneyPotContract.deployed();
 
-              const open = moneyPot[6];
+      const myMoneyPotsIds = await moneypotInstance.getMyMoneyPotsIds(wallet);
 
-              if (open) {
+      let moneyPots = [];
 
-              }
+      for(const moneyPotId in myMoneyPotsIds) {
 
-              _moneypot['id'] = moneyPot[0];
-              _moneypot['author'] = moneyPot[1];
-              _moneypot['beneficiary'] = moneyPot[2];
-              _moneypot['name'] = moneyPot[3];
-              _moneypot['description'] = moneyPot[4];
-              _moneypot['donations'] = [];
+          const moneyPot = await moneypotInstance.moneypots(moneyPotId);
 
-              // 0 to moneypot donations count
-              for (let id = 0; id < moneyPot[5].toNumber(); id++) {
-                moneypotInstance.getDonation(moneyPotId.toNumber(), id).then((donation) => {
-                  _moneypot['donations'].push({
-                    donor: donation[0],
-                    amount: donation[1],
-                  });
-                });
-              }
-              console.log(_moneypot);
-              return moneypotInstance.getDonors(moneyPotId.toNumber());
-            }).then((_donors) => {
-              _moneypot['donors'] = _donors;
-              return moneypotInstance.getMoneyPotAmount(moneyPotId.toNumber());
-            }).then((_amount) => {
-              _moneypot['amount'] = _amount;
-            }).then(() => dispatch(dispatchMoneypot(_moneypot)));
-        });
-      });
+          if(!moneyPot[6]) continue;
+
+          let data = {
+              "id": moneyPot[0],
+              "author": moneyPot[1],
+              "beneficiary": moneyPot[2],
+              "name": moneyPot[3],
+              "description": moneyPot[4],
+              "donations": []
+          };
+
+          for (let id = 0; id < moneyPot[5].toNumber(); id++) {
+              const donation = await moneypotInstance.getDonation(moneyPotId, id);
+
+              data["donations"].push({
+                  donor: donation[0],
+                  amount: donation[1],
+              });
+          }
+
+          const donors = await moneypotInstance.getDonors(moneyPotId);
+          const amount = await moneypotInstance.getMoneyPotAmount(moneyPotId);
+
+          data["donors"] = donors;
+          data["amount"] = amount;
+
+          moneyPots.push(data);
+      }
+      dispatch(dispatchMoneypots(moneyPots));
     };
   } else {
     console.error('Web3 is not initialized.');

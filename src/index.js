@@ -6,10 +6,12 @@ import ReactDOM from 'react-dom';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 import {Provider} from "react-redux";
-import {configureStore, browserHistory} from "./helpers";
+import {configureStore, browserHistory, web3Helper as web3} from "./helpers";
 import {Router} from "react-router-dom";
 
 export const store = configureStore(browserHistory);
+
+web3.initWeb3();
 
 ReactDOM.render(
   <Provider store={store}>

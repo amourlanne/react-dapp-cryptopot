@@ -1,255 +1,285 @@
 pragma solidity ^0.5.0;
 
 contract Owned {
-  // State variable
-  address payable owner;
+    // State variable
+    address payable owner;
 
-  // Modifiers
-  modifier onlyOwner() {
-    require(msg.sender == owner);
-    _;
-  }
+    // Modifiers
+    modifier onlyOwner() {
+        require(msg.sender == owner);
+        _;
+    }
 
-  // constructor
-  constructor() public {
-    owner = msg.sender;
-  }
+    // constructor
+    constructor() public {
+        owner = msg.sender;
+    }
 }
 
 contract MoneyPotSystem is Owned {
-  // Custom types
 
-  struct Donation {
-    address payable donor;
-    uint amount;
-  }
-
-  struct MoneyPot {
-    uint id;
-    address payable author;
-    address payable beneficiary;
-    string name;
-    string description;
-    address[] donors;
-    mapping(uint32 => Donation) donations;
-    uint32 donationsCounter;
-    bool open;
-  }
-
-  // State variables
-  mapping(uint => MoneyPot) public moneypots;
-  mapping(address => uint256[]) public addressToMoneyPot;
-
-  uint moneypotCounter;
-
-  // Events
-  event createMoneyPotEvent (
-    uint indexed _id,
-    address payable indexed _author,
-    string _name
-  );
-
-  event chipInEvent (
-    uint indexed _id,
-    address payable indexed _donor,
-    uint256 _amount,
-    string _name
-  );
-
-  event closeEvent (
-    uint indexed _id,
-    address payable indexed _benefeciary,
-    uint256 _amount,
-    string _name
-  );
-
-  event addDonorEvent(
-    uint indexed _id,
-    address payable indexed _donor
-  );
-
-  constructor() public {
-    moneypotCounter = 0;
-  }
-
-  function createMoneyPot(string memory _name, string memory _description, address payable _benefeciary, address[] memory _donors) public {
-    require(_benefeciary != msg.sender);
-
-    address[] memory donors = new address[](_donors.length + 1);
-
-    uint j = 0;
-    for (j ; j < _donors.length; j++) {
-      donors[j] = _donors[j];
-      addressToMoneyPot[_donors[j]].push(moneypotCounter);
+    // Custom types
+    struct Donation {
+        address payable donor;
+        uint amount;
     }
 
-    donors[j] = msg.sender;
-    addressToMoneyPot[msg.sender].push(moneypotCounter);
+    struct MoneyPot {
+        uint id;
+        address payable author;
+        address payable beneficiary;
+        string name;
+        string description;
+        address[] donors;
+        mapping(uint32 => Donation) donations;
+        uint32 donationsCounter;
+        bool open;
+        uint feesAmount;
+    }
 
-    moneypots[moneypotCounter] = MoneyPot(moneypotCounter, msg.sender, _benefeciary, _name, _description, donors, 0, true);
+    // State variables
+    mapping(uint => MoneyPot) public moneypots;
+    mapping(address => uint256[]) public addressToMoneyPot;
 
-    // trigger the event
-    emit createMoneyPotEvent(moneypotCounter, msg.sender, _name);
+    uint fees;
+    uint feesAmount;
 
-    moneypotCounter++;
+    uint moneypotCounter;
 
-  }
-  /*
-  function leaveMoneyPot(uint _id, address _donor) public {
+    // Events
+    event createMoneyPotEvent (
+        uint indexed _id,
+        address payable indexed _author,
+        string _name,
+        uint _feesAmount
+    );
 
-    require(_id >= 0 && _id <= moneypotCounter);
+    event chipInEvent (
+        uint indexed _id,
+        address payable indexed _donor,
+        uint256 _amount,
+        string _name,
+        uint _donation
+    );
 
-    Moneypot storage moneyPot = moneypots[_id];
+    event closeEvent (
+        uint indexed _id,
+        address payable indexed _benefeciary,
+        uint256 _amount,
+        string _name
+    );
 
-    require(myMoneyPot.open);
+    event addDonorEvent(
+        uint indexed _id,
+        address payable indexed _donor
+    );
 
-    require(myMoneyPot.author != msg.sender);
+    constructor() public {
+        moneypotCounter = 0;
+        fees = 0;
+        feesAmount = 6800000000000000;
+        // feesAmount = 0.0068 ether;
+    }
 
-    bool donorFound = false;
+    function createMoneyPot(string memory _name, string memory _description, address payable _benefeciary, address[] memory _donors) public {
+        require(_benefeciary != msg.sender);
 
-    for (uint j = 0; j < myMoneyPot.donors.length; j++) {
-      if (myMoneyPot.donors[j] == _donor) {
-        donorFound = true;
-        break;
+        address[] memory donors = new address[](_donors.length + 1);
+
+        uint j = 0;
+        for (j; j < _donors.length; j++) {
+            donors[j] = _donors[j];
+            addressToMoneyPot[_donors[j]].push(moneypotCounter);
+        }
+
+        donors[j] = msg.sender;
+        addressToMoneyPot[msg.sender].push(moneypotCounter);
+
+        moneypots[moneypotCounter] = MoneyPot(moneypotCounter, msg.sender, _benefeciary, _name, _description, donors, 0, true, feesAmount);
+
+        // trigger the event
+        emit createMoneyPotEvent(moneypotCounter, msg.sender, _name, feesAmount);
+
+        moneypotCounter++;
+
+    }
+    /*
+    function leaveMoneyPot(uint _id, address _donor) public {
+
+      require(_id >= 0 && _id <= moneypotCounter);
+
+      MoneyPot storage moneyPot = moneypots[_id];
+
+      require(myMoneyPot.open);
+
+      require(myMoneyPot.author != msg.sender);
+
+      bool donorFound = false;
+
+      for (uint j = 0; j < myMoneyPot.donors.length; j++) {
+        if (myMoneyPot.donors[j] == _donor) {
+          donorFound = true;
+          break;
+        }
       }
+      require(donorFound);
+      // do something
     }
-    require(donorFound);
-    // do something
-  }
-  */
+    */
 
-  function addDonor(uint _id, address payable _donor) public {
+    function addDonor(uint _id, address payable _donor) public {
 
-    // we check whether the money pot exists
-    require(_id >= 0 && _id <= moneypotCounter);
+        // we check whether the money pot exists
+        require(_id >= 0 && _id <= moneypotCounter);
 
-    MoneyPot storage myMoneyPot = moneypots[_id];
+        MoneyPot storage myMoneyPot = moneypots[_id];
 
-    // we check if moneypot is open
-    require(myMoneyPot.open);
+        // we check if moneypot is open
+        require(myMoneyPot.open);
 
-    //check caller is author
-    require(myMoneyPot.author == msg.sender);
+        //check caller is author
+        require(myMoneyPot.author == msg.sender);
 
-    // check if donor already exist
-    bool donorFound = false;
+        // check if donor already exist
+        bool donorFound = false;
 
-    for (uint j = 0; j < myMoneyPot.donors.length; j++) {
-      if (myMoneyPot.donors[j] == _donor) {
-        donorFound = true;
-        break;
-      }
+        for (uint j = 0; j < myMoneyPot.donors.length; j++) {
+            if (myMoneyPot.donors[j] == _donor) {
+                donorFound = true;
+                break;
+            }
+        }
+        require(!donorFound);
+
+        // Add donor
+        myMoneyPot.donors.push(_donor);
+        addressToMoneyPot[_donor].push(_id);
+
+        emit addDonorEvent(_id, _donor);
     }
-    require(!donorFound);
-
-    // Add donor
-    myMoneyPot.donors.push(_donor);
-    addressToMoneyPot[_donor].push(_id);
-
-    emit addDonorEvent(_id,_donor);
-  }
-  // fetch the number of money pots in the contract
-  function getNumberOfMoneyPots() public view returns (uint256) {
-    return moneypotCounter;
-  }
-
-  // fetch the number of money pots in the contract
-  function getNumberOfMyMoneyPots() public view returns (uint256) {
-    return addressToMoneyPot[msg.sender].length;
-  }
-
-  function getMyMoneyPotsIds(address who) public view returns (uint256[] memory) {
-    return addressToMoneyPot[who];
-  }
-
-  function getDonors(uint256 moneyPotId) public view returns (address[] memory) {
-    return moneypots[moneyPotId].donors;
-  }
-
-  function getDonation(uint moneyPotId , uint32 donationId) public view returns ( address donor, uint amount) {
-
-    Donation storage donation = moneypots[moneyPotId].donations[donationId];
-
-    return(donation.donor, donation.amount);
-  }
-
-  function chipIn(uint _id) payable public {
-    require(moneypotCounter > 0);
-
-    // we check whether the money pot exists
-    require(_id >= 0 && _id <= moneypotCounter);
-
-    // we retrieve the article
-    MoneyPot storage myMoneyPot = moneypots[_id];
-
-    // we check if moneypot is open
-    require(myMoneyPot.open);
-
-    //todo: forbidden to give if you are not a donor
-    bool donorFound = false;
-
-    for (uint j = 0; j < myMoneyPot.donors.length; j++) {
-      if (myMoneyPot.donors[j] == msg.sender) {
-        donorFound = true;
-        break;
-      }
+    // fetch the number of money pots in the contract
+    function getNumberOfMoneyPots() public view returns (uint256) {
+        return moneypotCounter;
     }
 
-    require(donorFound);
-
-    // Add donation
-    myMoneyPot.donations[myMoneyPot.donationsCounter] = Donation(msg.sender, msg.value);
-    myMoneyPot.donationsCounter += 1;
-
-    // trigger the event
-    emit chipInEvent(_id, msg.sender, msg.value, myMoneyPot.name);
-
-  }
-
-  function getMoneyPotAmount( uint _id ) public view returns (uint256) {
-    require(moneypotCounter > 0);
-
-    // we check whether the money pot exists
-    require(_id >= 0 && _id <= moneypotCounter);
-
-    // we retrieve the article
-    MoneyPot storage myMoneyPot = moneypots[_id];
-
-    uint256 amount = 0;
-
-    for (uint32 j = 0; j < myMoneyPot.donationsCounter; j++) {
-      amount += myMoneyPot.donations[j].amount;
+    function getNumberOfMyMoneyPots() public view returns (uint256) {
+        return addressToMoneyPot[msg.sender].length;
     }
 
-    return amount;
-  }
+    function getMyMoneyPotsIds(address who) public view returns (uint256[] memory) {
+        return addressToMoneyPot[who];
+    }
 
-  function close(uint _id) public {
-    require(moneypotCounter > 0);
+    function getDonors(uint256 moneyPotId) public view returns (address[] memory) {
+        return moneypots[moneyPotId].donors;
+    }
 
-    require(_id >= 0 && _id <= moneypotCounter);
+    function getDonation(uint moneyPotId, uint32 donationId) public view returns (address donor, uint amount) {
 
-    MoneyPot storage myMoneyPot = moneypots[_id];
+        Donation storage donation = moneypots[moneyPotId].donations[donationId];
 
-    //check caller is author or beneficiary
-    require(msg.sender == myMoneyPot.author || msg.sender == myMoneyPot.beneficiary);
+        return (donation.donor, donation.amount);
+    }
 
-    //check open
-    require(myMoneyPot.open);
+    function chipIn(uint _id) payable public {
+        require(moneypotCounter > 0);
 
-    uint amount = getMoneyPotAmount(myMoneyPot.id);
-    //check amount
-    require(amount > 0);
+        // we check whether the money pot exists
+        require(_id >= 0 && _id <= moneypotCounter);
 
-    myMoneyPot.open = false;
+        // we retrieve the article
+        MoneyPot storage myMoneyPot = moneypots[_id];
 
-    myMoneyPot.beneficiary.transfer(amount);
+        // we check if moneypot is open
+        require(myMoneyPot.open);
 
-    emit closeEvent(_id, myMoneyPot.beneficiary, amount, myMoneyPot.name);
-  }
+        //forbidden to give if you are not a donor
+        bool donorFound = false;
 
-  // kill the smart contract
-  function kill() onlyOwner public {
-    selfdestruct(owner);
-  }
+        for (uint j = 0; j < myMoneyPot.donors.length; j++) {
+            if (myMoneyPot.donors[j] == msg.sender) {
+                donorFound = true;
+                break;
+            }
+        }
+
+        require(donorFound);
+
+        fees = fees + myMoneyPot.feesAmount;
+
+        uint donation = msg.value - myMoneyPot.feesAmount;
+
+        // Add donation
+        myMoneyPot.donations[myMoneyPot.donationsCounter] = Donation(msg.sender, donation);
+        myMoneyPot.donationsCounter += 1;
+
+        // trigger the event
+        emit chipInEvent(_id, msg.sender, msg.value, myMoneyPot.name, donation );
+
+    }
+
+    function withdrawFees() onlyOwner public {
+        owner.transfer(fees);
+        fees = 0;
+    }
+
+    function getFeesAmount() public view returns (uint) {
+        return feesAmount;
+    }
+
+    function setFeesAmount(uint _amount) onlyOwner public {
+        feesAmount = _amount;
+    }
+
+    function getFees() onlyOwner public view returns (uint) {
+        return fees;
+    }
+
+    function getMoneyPotAmount(uint _id) public view returns (uint256) {
+        require(moneypotCounter > 0);
+
+        // we check whether the money pot exists
+        require(_id >= 0 && _id <= moneypotCounter);
+
+        // we retrieve the article
+        MoneyPot storage myMoneyPot = moneypots[_id];
+
+        uint256 amount = 0;
+
+        for (uint32 j = 0; j < myMoneyPot.donationsCounter; j++) {
+            amount += myMoneyPot.donations[j].amount;
+        }
+
+        return amount;
+    }
+
+    function close(uint _id) public {
+        require(moneypotCounter > 0);
+
+        require(_id >= 0 && _id <= moneypotCounter);
+
+        MoneyPot storage myMoneyPot = moneypots[_id];
+
+        //check caller is author or beneficiary
+        require(msg.sender == myMoneyPot.author || msg.sender == myMoneyPot.beneficiary);
+
+        //check open
+        require(myMoneyPot.open);
+
+        uint amount = getMoneyPotAmount(myMoneyPot.id);
+        //check amount
+        require(amount > 0);
+
+        myMoneyPot.open = false;
+
+        myMoneyPot.beneficiary.transfer(amount);
+
+        emit closeEvent(_id, myMoneyPot.beneficiary, amount, myMoneyPot.name);
+    }
+
+    // kill the smart contract
+    function kill() onlyOwner public {
+        withdrawFees();
+        selfdestruct(owner);
+    }
 }

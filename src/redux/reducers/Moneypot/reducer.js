@@ -12,10 +12,10 @@ export function moneypotReducer(state = initialState, action) {
   } = action;
 
   switch (type) {
-  case moneypotConstants.MONEYPOT_INITIALIZED:
+  case moneypotConstants.MONEYPOTS_INITIALIZED:
     return {
       ...state,
-      moneypots: [...state.moneypots, payload.moneypot]
+      moneypots: payload.moneypots
     };
   default:
     return state;
