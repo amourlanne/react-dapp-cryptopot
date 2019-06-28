@@ -2,6 +2,7 @@ import {moneypotConstants} from "../../constants/Moneypot";
 
 const initialState = {
   moneypots: [],
+  current: null
 };
 
 export function moneypotReducer(state = initialState, action) {
@@ -15,7 +16,8 @@ export function moneypotReducer(state = initialState, action) {
   case moneypotConstants.MONEYPOTS_INITIALIZED:
     return {
       ...state,
-      moneypots: payload.moneypots
+      moneypots: payload.moneypots,
+      current: payload.moneypots.shift()
     };
   default:
     return state;
